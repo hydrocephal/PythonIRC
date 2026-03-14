@@ -1,16 +1,16 @@
 from fastapi import FastAPI
-from app.auth import router as auth_router
-from app.chat import router as chat_router
-from app.database import engine, Base
+from app.routers.auth import router as auth_router
+from app.routers.chat import router as chat_router
+from app.models.models import User, Message
+from app.db.database import engine, Base
 
-# Create tables on startup
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="IRC Chat MVP")
+app = FastAPI(title="Ghost IRC Chat")
 
 app.include_router(auth_router)
 app.include_router(chat_router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to IRC Chat MVP API"}
+    return {"message": "Welcome to Ghost IRC Chat"}
