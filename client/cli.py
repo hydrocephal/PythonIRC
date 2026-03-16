@@ -111,9 +111,9 @@ async def receive_messages(websocket, username):
                 if " joined the chat." in content:
                     name = content.replace(" joined the chat.", "")
                     print(f"{RED}[SYSTEM] {username_color(name)}{name}{RED} joined the chat.{RESET}")
-                elif " left the chat" in content:
-                    name = content.replace(" left the chat", "")
-                    print(f"{RED}[SYSTEM] {username_color(name)}{name}{RED} left the chat{RESET}")
+                elif " left the chat." in content:
+                    name = content.replace(" left the chat.", "")
+                    print(f"{RED}[SYSTEM] {username_color(name)}{name}{RED} left the chat.{RESET}")
                 elif "Online users: " in content:
                     users = content.replace("Online users: ", "").split(", ")
                     colored = ", ".join(f"{username_color(u)}{u}{RESET}" for u in users)
@@ -153,10 +153,10 @@ async def send_messages(websocket):
             break
 
 async def start_chat(token, username):
-    print(f"\n{GREEN}Connecting as {username}...{RESET}")
-    uri = f"{WS_URL}?token={token}"
+    print(f"\n{GREEN}Connecting as {username}...{RESET}")    
     try:
-        async with websockets.connect(uri) as websocket:
+        async with websockets.connect(WS_URL) as websocket:
+            await websocket.send(json.dumps({"token": token}))
             print(f"{GREEN}Commands: /online, /exit{RESET}")
             print(f"{GREEN} --- Chat history --- {RESET}")
 

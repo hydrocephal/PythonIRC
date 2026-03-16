@@ -4,7 +4,7 @@ from app.models.models import User, Message
 from app.core.config import settings
 from app.db.database import SessionLocal
 from jose import JWTError, jwt
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import asyncio
 
@@ -15,9 +15,8 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, user_id: int, username: str):
         async with self._lock:
-            await websocket.accept()
             self.active_connections.append((websocket, user_id, username))
-            await self.broadcast({"type": "system", "content": f"{username} joined the chat."})
+        await self.broadcast({"type": "system", "content": f"{username} joined the chat."})
 
     async def disconnect(self, websocket: WebSocket):                                                 #add logs with usernames
         async with self._lock:
@@ -31,10 +30,17 @@ class ConnectionManager:
             except Exception:
                 return connection
         
-        results = await asyncio.gather(*[send_or_mark_dead(c) for c in self.active_connections])
+        async with self._lock:
+            connections = self.active_connections.copy()
+
+        results = await asyncio.gather(*[send_or_mark_dead(c) for c in connections])
         dead = [c for c in results if c is not None]
-        for connection in dead:
-            self.active_connections.remove(connection)
+        
+        if dead:
+            async with self._lock:
+                for connection in dead:
+                    if connection in self.active_connections:
+                        self.active_connections.remove(connection)
 
     def get_online_users(self):
         return [c[2] for c in self.active_connections]
@@ -52,25 +58,32 @@ async def get_user_from_token(token: str, db: Session):
 
     return db.query(User).filter(User.username == username).first()
 
-async def websocket_connection_logic(websocket: WebSocket, token: str, db: Session):
-    user = await get_user_from_token(token, db)
-    if user is None:
+async def websocket_connection_logic(websocket: WebSocket):
+    await websocket.accept()
+    data = await websocket.receive_text()    
+    token = json.loads(data).get("token")    
+    if not token:
         return None
     
-    await manager.connect(websocket, user.id, user.username)
-
+    with SessionLocal() as session:
+        user = await get_user_from_token(token, session)        
+        if user is None:
+            return None
+    
+    await manager.connect(websocket, user.id, user.username)    
+    
     try:
-        last_messages = db.query(Message).options(
-            joinedload(Message.sender)).order_by(Message.timestamp.desc()).limit(50).all()
-        for msg in reversed(last_messages):
-            db.close()
-            sender_name = msg.sender.username if msg.sender else "Unknown"
-            await websocket.send_json({
-                "type": "message",
-                "username": sender_name,
-                "content": msg.content,
-                "timestamp": msg.timestamp.isoformat()
-            })
+        with SessionLocal() as session:            
+            last_messages = session.query(Message).options(
+                joinedload(Message.sender)).order_by(Message.timestamp.desc()).limit(50).all()            
+            for msg in reversed(last_messages):
+                sender_name = msg.sender.username if msg.sender else "Unknown"
+                await websocket.send_json({
+                    "type": "message",
+                    "username": sender_name,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat()
+                })
             
         while True:
             data = await websocket.receive_text()
@@ -86,19 +99,22 @@ async def websocket_connection_logic(websocket: WebSocket, token: str, db: Sessi
             content = message_data.get("content")
             if content:
                 with SessionLocal() as session:
-                    new_msg = Message(user_id=user.id, content=content)
-                    session.add(new_msg)
-                    session.commit()
+                    try:
+                        new_msg = Message(user_id=user.id, content=content)
+                        session.add(new_msg)
+                        session.commit()
 
-                await manager.broadcast({
-                    "type": "message",
-                    "username": user.username,
-                    "content": content,
-                    "timestamp": datetime.now().isoformat()
-                })
+                        await manager.broadcast({
+                            "type": "message",
+                            "username": user.username,
+                            "content": content,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                    except Exception:
+                        session.rollback()
 
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
-        await manager.broadcast({"type": "system", "content": f"{user.username} left the chat"})
+        await manager.broadcast({"type": "system", "content": f"{user.username} left the chat."})
     except RuntimeError:
         await manager.disconnect(websocket)
