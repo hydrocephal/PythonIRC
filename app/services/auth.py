@@ -1,11 +1,14 @@
-from app.schemas.auth import UserCreate
 from datetime import datetime, timedelta, timezone
-from jose import jwt
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from app.models.models import User
-from app.core.config import settings
+
 import bcrypt
+from jose import jwt
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.models.models import User
+from app.schemas.auth import UserCreate
+
 
 def verify_password(plain_password, hashed_password):
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))

@@ -1,11 +1,12 @@
 import asyncio
+import getpass
+import json
+import os
+import sys
+
+import aioconsole
 import requests
 import websockets
-import aioconsole
-import json
-import sys
-import os
-import getpass
 
 API_URL = "http://localhost:8000"
 WS_URL = "ws://localhost:8000/ws"
@@ -51,13 +52,13 @@ def get_auth_token():
             try:
                 response = requests.post(
                     f"{API_URL}/auth/register",
-                    json={"username": username, "password": password}
+                    json={"username": username, "password": password}, timeout=5
                 )
                 if response.status_code == 200:
                     print(f"{GREEN}Registration successful! Please login.{RESET}")
                 else:
                     print(f"{RED}Error: {response.json().get('detail', 'Registration failed')}{RESET}")
-            except requests.exceptions.ConnectionError:
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
                 print(f"{RED}Error: Could not connect to server. Is it running?{RESET}")
                 return None
 
@@ -96,7 +97,7 @@ async def receive_messages(websocket, username):
                     time = timestamp.split("T")[1][:5]
                     day, month, year = date.split("-")
                     ts = f"{day}/{month}/{year[2:]} {time}"
-                except:
+                except Exception:
                     ts = timestamp
 
                 color = username_color(sender)

@@ -1,12 +1,15 @@
+import asyncio
+import json
+from datetime import datetime, timezone
+
 from fastapi import WebSocket, WebSocketDisconnect
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session, joinedload
-from app.models.models import User, Message
+
 from app.core.config import settings
 from app.db.database import SessionLocal
-from jose import JWTError, jwt
-from datetime import datetime, timezone
-import json
-import asyncio
+from app.models.models import Message, User
+
 
 class ConnectionManager:
     def __init__(self):

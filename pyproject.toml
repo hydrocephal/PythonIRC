@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C90", "N", "S"]  # E=стиль, F=ошибки, I=сортировка импортов
+ignore = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
