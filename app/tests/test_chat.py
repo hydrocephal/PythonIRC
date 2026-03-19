@@ -1,8 +1,6 @@
 from app.schemas.auth import UserCreate
-from app.services.chat import ConnectionManager, get_user_from_token, websocket_connection_logic
-from app.models.models import User, Message
-from app.services.auth import create_user, create_access_token
-from app.services.chat import manager
+from app.services.auth import create_access_token, create_user
+from app.services.chat import get_user_from_token
 
 
 async def test_user_from_token(db):

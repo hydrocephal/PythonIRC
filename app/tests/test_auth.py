@@ -1,8 +1,10 @@
-from app.services.auth import verify_password, get_password_hash, create_access_token, create_user, login_user
 from datetime import timedelta
+
 from jose import jwt
+
 from app.core.config import settings
 from app.schemas.auth import UserCreate
+from app.services.auth import create_access_token, create_user, get_password_hash, login_user, verify_password
 
 
 def test_password_hash_and_verify():
