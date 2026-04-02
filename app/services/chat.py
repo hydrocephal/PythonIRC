@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 
 from fastapi import WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.database import SessionLocal
@@ -50,7 +52,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-async def get_user_from_token(token: str, db: Session):
+async def get_user_from_token(token: str, db: AsyncSession):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
@@ -58,8 +60,8 @@ async def get_user_from_token(token: str, db: Session):
             return None
     except JWTError:
         return None
-
-    return db.query(User).filter(User.username == username).first()
+    result = await db.execute(select(User).where(User.username == username))           
+    return result.scalar_one_or_none()
 
 async def websocket_connection_logic(websocket: WebSocket):
     await websocket.accept()
@@ -68,7 +70,7 @@ async def websocket_connection_logic(websocket: WebSocket):
     if not token:
         return None
     
-    with SessionLocal() as session:
+    async with SessionLocal() as session:
         user = await get_user_from_token(token, session)        
         if user is None:
             return None
@@ -76,10 +78,11 @@ async def websocket_connection_logic(websocket: WebSocket):
     await manager.connect(websocket, user.id, user.username)    
     
     try:
-        with SessionLocal() as session:            
-            last_messages = session.query(Message).options(
-                joinedload(Message.sender)).order_by(Message.timestamp.desc()).limit(50).all()            
-            for msg in reversed(last_messages):
+        async with SessionLocal() as session:            
+            last_messages = await session.execute(select(Message).options(
+                joinedload(Message.sender)).order_by(Message.timestamp.desc()).limit(50))
+                            
+            for msg in reversed(last_messages.unique().scalars().all()):
                 sender_name = msg.sender.username if msg.sender else "Unknown"
                 await websocket.send_json({
                     "type": "message",
@@ -101,12 +104,12 @@ async def websocket_connection_logic(websocket: WebSocket):
                 continue
             content = message_data.get("content")
             if content:
-                with SessionLocal() as session:
+                async with SessionLocal() as session:
                     try:
                         new_msg = Message(user_id=user.id, content=content)
                         session.add(new_msg)
-                        session.commit()
-
+                        await session.commit()
+            
                         await manager.broadcast({
                             "type": "message",
                             "username": user.username,
@@ -114,7 +117,7 @@ async def websocket_connection_logic(websocket: WebSocket):
                             "timestamp": datetime.now(timezone.utc).isoformat()
                         })
                     except Exception:
-                        session.rollback()
+                        await session.rollback()
 
     except WebSocketDisconnect:
         await manager.disconnect(websocket)

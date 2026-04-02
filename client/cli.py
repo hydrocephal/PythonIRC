@@ -95,8 +95,8 @@ async def receive_messages(websocket, username):
                 try:
                     date = timestamp.split("T")[0]
                     time = timestamp.split("T")[1][:5]
-                    day, month, year = date.split("-")
-                    ts = f"{day}/{month}/{year[2:]} {time}"
+                    year, month, day = date.split("-")
+                    ts = f"{day}/{month}/{year}|{time}"
                 except Exception:
                     ts = timestamp
 

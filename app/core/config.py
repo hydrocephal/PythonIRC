@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    DATABASE_URL: str = "sqlite:///./irc_chat.db"
+    DATABASE_URL: str
 
     model_config = SettingsConfigDict(env_file=".env")
 

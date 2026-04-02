@@ -22,18 +22,18 @@ def test_create_access_token():
     payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     assert payload.get("sub") == username
 
-def test_create_user(db):
+async def test_create_user(db):
     user_data = UserCreate(username="Pupok", password="pass")
-    register_func = create_user(user_data, db)
+    register_func = await create_user(user_data, db)
     assert register_func is not None
     assert "access_token" in register_func
     assert register_func["token_type"] == "bearer"
 
-def test_login_user(db):
+async def test_login_user(db):
     user_data = UserCreate(username="Pupok", password="pass")
-    create_user(user_data, db)
+    await create_user(user_data, db)
 
-    user_login = login_user(user_data.username, user_data.password, db=db)
+    user_login = await login_user(user_data.username, user_data.password, db=db)
 
     assert user_login is not None
     assert "access_token" in user_login
