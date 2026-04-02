@@ -1,42 +1,41 @@
-import sys
 import asyncio
+import sys
+
 import pytest
 import pytest_asyncio
-from app.db.database import SessionLocal
-from app.services import chat as chat_service
 from fastapi.testclient import TestClient
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.pool import NullPool
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from httpx import ASGITransport, AsyncClient
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from app.db.database import Base, get_db
+from app.db.database import Base, SessionLocal, get_db
 from app.main import app
+from app.services import chat as chat_service
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 class TestSettings(BaseSettings):
     DATABASE_URL: str
 
     model_config = SettingsConfigDict(env_file=".env.test")
 
+
 test_settings = TestSettings()
 
-test_engine = create_async_engine(test_settings.DATABASE_URL,
-poolclass=NullPool)
+test_engine = create_async_engine(test_settings.DATABASE_URL, poolclass=NullPool)
 
-TestSessionLocal = async_sessionmaker(
-    test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+TestSessionLocal = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
 
 @pytest.fixture(scope="session")
 def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest.fixture
 def sync_client():
@@ -61,6 +60,7 @@ def sync_client():
     app.dependency_overrides.clear()
     asyncio.get_event_loop().run_until_complete(drop_tables())
 
+
 @pytest_asyncio.fixture(scope="function")
 async def db():
     async with test_engine.begin() as conn:
@@ -70,6 +70,7 @@ async def db():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db):
     async def override_get_db():
@@ -77,10 +78,7 @@ async def client(db):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
     app.dependency_overrides.clear()
