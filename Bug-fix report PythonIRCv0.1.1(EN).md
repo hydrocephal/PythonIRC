@@ -186,7 +186,7 @@ ___
      after execution
      
      ```
-            done, pending = await asyncio.wait(
+            _done, pending = await asyncio.wait(
                 [receive_task, send_task],
                 return_when=asyncio.FIRST_COMPLETED,
             )

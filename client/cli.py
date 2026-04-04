@@ -12,22 +12,26 @@ API_URL = "http://localhost:8000"
 WS_URL = "ws://localhost:8000/ws"
 
 # ANSI
-RESET  = "\033[0m"
-RED    = "\033[31m"
-GREEN  = "\033[92m"
+RESET = "\033[0m"
+RED = "\033[31m"
+GREEN = "\033[92m"
+
 
 def username_color(username: str) -> str:
     h = hash(username) & 0xFFFFFF
     r = max((h >> 16) & 0xFF, 30)
-    g = max((h >> 8)  & 0xFF, 30)
-    b = max(h & 0xFF,          30)
+    g = max((h >> 8) & 0xFF, 30)
+    b = max(h & 0xFF, 30)
     return f"\033[38;2;{r};{g};{b}m"
 
-def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
 
-if os.name == 'nt':
-    os.system('')
+def clear_screen():
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+if os.name == "nt":
+    os.system("")
+
 
 def print_banner():
     banner = r"""
@@ -40,19 +44,19 @@ def print_banner():
     """
     print(f"\033[96m{banner}\033[0m")
 
+
 def get_auth_token():
     print_banner()
     print(f"{GREEN}Welcome to Ghost IRC chat!{RESET}")
     while True:
         choice = input(f"{GREEN}1. Login\n2. Register\nChoose (1/2): {RESET}").strip()
 
-        if choice == '2':
+        if choice == "2":
             username = input(f"{GREEN}Enter new username: {RESET}").strip()
             password = getpass.getpass(f"{GREEN}Enter new password: {RESET}").strip()
             try:
                 response = requests.post(
-                    f"{API_URL}/auth/register",
-                    json={"username": username, "password": password}, timeout=5
+                    f"{API_URL}/auth/register", json={"username": username, "password": password}, timeout=5
                 )
                 if response.status_code == 200:
                     print(f"{GREEN}Registration successful! Please login.{RESET}")
@@ -62,14 +66,11 @@ def get_auth_token():
                 print(f"{RED}Error: Could not connect to server. Is it running?{RESET}")
                 return None
 
-        elif choice == '1':
+        elif choice == "1":
             username = input(f"{GREEN}Username: {RESET}").strip()
             password = getpass.getpass(f"{GREEN}Password: {RESET}").strip()
             try:
-                response = requests.post(
-                    f"{API_URL}/auth/token",
-                    data={"username": username, "password": password}
-                )
+                response = requests.post(f"{API_URL}/auth/token", data={"username": username, "password": password})
                 if response.status_code == 200:
                     token_data = response.json()
                     return token_data["access_token"], username
@@ -80,6 +81,7 @@ def get_auth_token():
                 return None
         else:
             print(f"{RED}Invalid choice.{RESET}")
+
 
 async def receive_messages(websocket, username):
     try:
@@ -108,7 +110,7 @@ async def receive_messages(websocket, username):
 
             elif msg_type == "system":
                 content = data.get("content", "")
-                #colored system messages
+                # colored system messages
                 if " joined the chat." in content:
                     name = content.replace(" joined the chat.", "")
                     print(f"{RED}[SYSTEM] {username_color(name)}{name}{RED} joined the chat.{RESET}")
@@ -124,6 +126,7 @@ async def receive_messages(websocket, username):
 
     except websockets.exceptions.ConnectionClosed:
         print(f"\n{RED}Connection closed by server.{RESET}")
+
 
 async def send_messages(websocket):
     while True:
@@ -153,8 +156,9 @@ async def send_messages(websocket):
             await websocket.close()
             break
 
+
 async def start_chat(token, username):
-    print(f"\n{GREEN}Connecting as {username}...{RESET}")    
+    print(f"\n{GREEN}Connecting as {username}...{RESET}")
     try:
         async with websockets.connect(WS_URL) as websocket:
             await websocket.send(json.dumps({"token": token}))
@@ -164,7 +168,7 @@ async def start_chat(token, username):
             receive_task = asyncio.create_task(receive_messages(websocket, username))
             send_task = asyncio.create_task(send_messages(websocket))
 
-            done, pending = await asyncio.wait(
+            _done, pending = await asyncio.wait(
                 [receive_task, send_task],
                 return_when=asyncio.FIRST_COMPLETED,
             )
@@ -177,17 +181,19 @@ async def start_chat(token, username):
     except Exception as e:
         print(f"{RED}Connection failed: {e}{RESET}")
 
+
 def main():
     auth_result = get_auth_token()
     if auth_result:
         token, username = auth_result
         try:
             print(f"{GREEN}Starting chat client...{RESET}")
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
             asyncio.run(start_chat(token, username))
         except KeyboardInterrupt:
             print(f"\n{GREEN}See ya champ{RESET}")
+
 
 if __name__ == "__main__":
     main()
