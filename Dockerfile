@@ -8,10 +8,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 FROM python:3.12-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
-COPY --chown=appuser:appgroup --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
-COPY --chown=appuser:appgroup . .
+COPY . .
 RUN chmod +x entrypoint.sh
-USER appuser
 CMD ["./entrypoint.sh"]
