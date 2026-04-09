@@ -2,8 +2,8 @@ import asyncio
 import json
 from datetime import datetime, timezone
 
+import jwt
 from fastapi import WebSocket, WebSocketDisconnect
-from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -79,7 +79,7 @@ async def get_user_from_token(token: str, db: AsyncSession):
         username: str = payload.get("sub")
         if username is None:
             return None
-    except JWTError:
+    except jwt.PyJWTError:
         return None
     result = await db.execute(select(User).where(User.username == username))
     return result.scalar_one_or_none()

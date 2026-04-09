@@ -14,7 +14,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator==7.1.0",
     "pydantic==2.12.5",
     "pydantic-settings==2.13.1",
-    "python-jose==3.5.0",
+    "pyjwt>=2.12.1",
     "python-multipart==0.0.22",
     "redis==7.4.0",
     "requests==2.33.1",

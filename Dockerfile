@@ -7,7 +7,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 FROM python:3.12-slim
 WORKDIR /app
-RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade pip
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup --home /app appuser
 COPY --chown=appuser:appgroup --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"

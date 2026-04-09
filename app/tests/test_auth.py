@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 from app.schemas.auth import UserCreate
