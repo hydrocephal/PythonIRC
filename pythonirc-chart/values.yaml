@@ -1,0 +1,20 @@
+replicas: 3
+
+image:
+  name: pythonircv01-app
+  tag: latest
+
+containerPort: 8000
+
+ingress:
+  host: pythonirc.local
+
+config:
+  algorithm: "HS256"
+  accessTokenExpireMinutes: "30"
+
+secret:
+  secretKey: "supersecretkey123"
+  databaseUrl: "postgresql+asyncpg://irc_user:irc_password@192.168.49.1:5432/irc_chat"
+  redisUrl: "redis://192.168.49.1:6379"
+  sentryDsn: ""

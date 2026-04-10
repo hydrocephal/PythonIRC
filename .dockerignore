@@ -46,3 +46,7 @@ Dockerfile
 # Конфиги которые монтируются
 prometheus.yml
 .pre-commit-config.yaml
+
+# Kubernetes+Helm
+k8s/
+pythonirc-chart/

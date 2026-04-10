@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pythonirc-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pythonirc
+  template:
+    metadata:
+      labels:
+        app: pythonirc
+    spec:
+      containers:
+      - name: pythonirc
+        image: pythonircv01-app:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: pythonirc-config
+        - secretRef:
+            name: pythonirc-secret
